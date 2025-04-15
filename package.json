@@ -1,0 +1,62 @@
+{
+  "name": "create-my-stack",
+  "version": "0.1.0",
+  "description": "CLI-based meta-framework for scaffolding Next.js apps with custom stacks",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "create-my-stack": "./dist/index.js",
+    "create-my-stack-add": "./dist/add.js"
+  },
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src/**/*.ts",
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "local-test": "pnpm run build && node dist/index.js",
+    "local-add-test": "pnpm run build && node dist/add.js add",
+    "link": "pnpm run build && pnpm link --global",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "pnpm run build && changeset publish"
+  },
+  "keywords": [
+    "nextjs",
+    "cli",
+    "scaffold",
+    "prisma",
+    "drizzle",
+    "nextauth",
+    "mailing"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@clack/prompts": "^0.10.1",
+    "chalk": "^5.4.1",
+    "clack": "^0.1.0",
+    "enquirer": "^2.4.1",
+    "esbuild": "^0.25.2",
+    "fs-extra": "^11.3.0",
+    "handlebars": "^4.7.8",
+    "ora": "^8.2.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.0",
+    "@types/fs-extra": "^11.0.4",
+    "@types/handlebars": "^4.1.0",
+    "@types/node": "^22.14.1",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "eslint": "^9.24.0",
+    "next": "^14.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  }
+}
