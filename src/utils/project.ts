@@ -14,15 +14,19 @@ Handlebars.registerHelper('eq', function(arg1, arg2) {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Path to templates 
 const templatesDir = path.resolve(__dirname, '../../templates');
 
 interface ProjectConfig {
   name: string;
-  database: 'none' | 'prisma' | 'drizzle';
+  databaseType: 'none' | 'postgresql' | 'mysql' | 'sqlite';
+  databaseProvider: string;
+  orm: 'none' | 'prisma' | 'drizzle';
   auth: boolean;
+  authProvider?: 'nextauth' | 'lucia' | 'clerk'; 
+  baas?: 'none' | 'supabase';
   mailing: boolean;
-  ui: 'none' | 'shadcn' | 'chakra' | 'mantine' | 'nextui';
+  mailingProvider?: 'nodemailer' | 'resend' | 'sendgrid' | 'postmark';
+  ui: 'none' | 'shadcn' | 'chakra';
   installDeps?: boolean;
   packageManager?: 'npm' | 'pnpm' | 'yarn' | 'bun';
 }
@@ -42,45 +46,130 @@ export async function createProject(config: ProjectConfig): Promise<void> {
     throw new Error(`Directory ${config.name} is not empty. Please choose a different name or clear the directory.`);
   }
   
-  // Copy base template
+  // Copy base template (including package.json and .env)
   const baseSpinner = ora('Adding base Next.js template...').start();
-  await fs.copy(path.join(templatesDir, 'base'), projectDir);
-  baseSpinner.succeed(chalk.blue('🔨 Added base Next.js template'));
-  
+  try {
+    await fs.copy(path.join(templatesDir, 'base'), projectDir);
+    baseSpinner.succeed(chalk.blue('🔨 Added base Next.js template'));
+  } catch (err) {
+    baseSpinner.fail(chalk.red('❌ Failed to copy base template.'));
+    throw new Error('Failed to copy base template: ' + (err instanceof Error ? err.message : String(err)));
+  }
+
+  // Ensure package.json exists after all template copies
+  const ensurePackageJson = async () => {
+    const packageJsonPath = path.join(projectDir, 'package.json');
+    if (!await fs.pathExists(packageJsonPath)) {
+      await fs.writeJson(packageJsonPath, {}, { spaces: 2 });
+    }
+  };
+  await ensurePackageJson();
+
+  // Helper: files to skip for merging
+  const configFilesToMerge = ['package.json', 'tsconfig.json', '.env'];
+
   // Copy database template if selected
-  if (config.database !== 'none') {
-    const dbSpinner = ora(`Adding ${config.database} setup...`).start();
-    await fs.copy(path.join(templatesDir, config.database), projectDir, { overwrite: true });
-    dbSpinner.succeed(chalk.blue(`🔨 Added ${config.database} setup`));
+  if (config.orm !== 'none') {
+    const dbSpinner = ora(`Adding ${config.orm} setup...`).start();
+    const dbTemplatePath = path.join(templatesDir, config.orm);
+    const dbFiles = await fs.readdir(dbTemplatePath);
+    for (const file of dbFiles) {
+      if (configFilesToMerge.includes(file)) continue;
+      await fs.copy(path.join(dbTemplatePath, file), path.join(projectDir, file), { overwrite: true });
+    }
+    dbSpinner.succeed(chalk.blue(`🔨 Added ${config.orm} setup`));
+    await ensurePackageJson();
   }
   
   // Copy auth template if selected
   if (config.auth) {
-    const authSpinner = ora('Adding NextAuth setup...').start();
-    await fs.copy(path.join(templatesDir, 'nextauth'), projectDir, { overwrite: true });
-    authSpinner.succeed(chalk.blue('🔨 Added NextAuth setup'));
+    // Default to NextAuth if no specific provider is selected
+    const authProvider = config.authProvider || 'nextauth';
+    const authSpinner = ora(`Adding ${authProvider} authentication setup...`).start();
+    
+    // Check if the template directory for the selected provider exists
+    const authTemplatePath = path.join(templatesDir, authProvider);
+    if (await fs.pathExists(authTemplatePath)) {
+      const authFiles = await fs.readdir(authTemplatePath);
+      for (const file of authFiles) {
+        if (configFilesToMerge.includes(file)) continue;
+        await fs.copy(path.join(authTemplatePath, file), path.join(projectDir, file), { overwrite: true });
+      }
+      authSpinner.succeed(chalk.blue(`🔨 Added ${authProvider} authentication setup`));
+    } else {
+      // Fallback to NextAuth if the selected provider template doesn't exist yet
+      const fallbackPath = path.join(templatesDir, 'nextauth');
+      const fallbackFiles = await fs.readdir(fallbackPath);
+      for (const file of fallbackFiles) {
+        if (configFilesToMerge.includes(file)) continue;
+        await fs.copy(path.join(fallbackPath, file), path.join(projectDir, file), { overwrite: true });
+      }
+      authSpinner.succeed(chalk.blue(`🔨 Added NextAuth.js setup (${authProvider} template not available yet)`));
+    }
+    await ensurePackageJson();
   }
   
+  // Copy BaaS template if selected
+  if (config.baas === 'supabase') {
+    const supabaseSpinner = ora('Adding Supabase BaaS setup...').start();
+    const supabaseTemplatePath = path.join(templatesDir, 'supabase');
+    if (await fs.pathExists(supabaseTemplatePath)) {
+      const supabaseFiles = await fs.readdir(supabaseTemplatePath);
+      for (const file of supabaseFiles) {
+        if (configFilesToMerge.includes(file)) continue;
+        await fs.copy(path.join(supabaseTemplatePath, file), path.join(projectDir, file), { overwrite: true });
+      }
+      supabaseSpinner.succeed(chalk.blue('🔨 Added Supabase BaaS setup'));
+    } else {
+      supabaseSpinner.warn(chalk.yellow('Supabase template not found, skipping Supabase BaaS setup.'));
+    }
+    await ensurePackageJson();
+  }
+
   // Copy mailing template if selected
   if (config.mailing) {
-    const mailingSpinner = ora('Adding mailing capabilities...').start();
-    await fs.copy(path.join(templatesDir, 'mailing'), projectDir, { overwrite: true });
-    mailingSpinner.succeed(chalk.blue('🔨 Added mailing capabilities'));
+    // Default to standard mailing if no specific provider is selected
+    const mailingProvider = config.mailingProvider || 'nodemailer';
+    const mailingSpinner = ora(`Adding ${mailingProvider} mailing capabilities...`).start();
+    const mailingDir = mailingProvider === 'nodemailer' ? 'mailing' : `mailing-${mailingProvider}`;
+    const mailingTemplatePath = path.join(templatesDir, mailingDir);
+    if (await fs.pathExists(mailingTemplatePath)) {
+      const mailingFiles = await fs.readdir(mailingTemplatePath);
+      for (const file of mailingFiles) {
+        if (configFilesToMerge.includes(file)) continue;
+        await fs.copy(path.join(mailingTemplatePath, file), path.join(projectDir, file), { overwrite: true });
+      }
+      mailingSpinner.succeed(chalk.blue(`🔨 Added ${mailingProvider} mailing capabilities`));
+    } else {
+      // Fallback to standard mailing if the selected provider template doesn't exist yet
+      const fallbackPath = path.join(templatesDir, 'mailing');
+      const fallbackFiles = await fs.readdir(fallbackPath);
+      for (const file of fallbackFiles) {
+        if (configFilesToMerge.includes(file)) continue;
+        await fs.copy(path.join(fallbackPath, file), path.join(projectDir, file), { overwrite: true });
+      }
+      mailingSpinner.succeed(chalk.blue(`🔨 Added basic mailing capabilities (${mailingProvider} template not available yet)`));
+    }
+    await ensurePackageJson();
   }
   
   // Add UI library if selected
   if (config.ui !== 'none') {
     const uiSpinner = ora(`Setting up ${config.ui} UI library...`).start();
-    await fs.copy(path.join(templatesDir, config.ui), projectDir, { overwrite: true });
+    const uiTemplatePath = path.join(templatesDir, config.ui);
+    const uiFiles = await fs.readdir(uiTemplatePath);
+    for (const file of uiFiles) {
+      if (configFilesToMerge.includes(file)) continue;
+      await fs.copy(path.join(uiTemplatePath, file), path.join(projectDir, file), { overwrite: true });
+    }
     uiSpinner.succeed(chalk.blue(`🔨 Set up ${config.ui} UI library`));
+    await ensurePackageJson();
   }
   
-  // Copy shared template to glue everything together
-  const sharedSpinner = ora('Adding shared components...').start();
-  await fs.copy(path.join(templatesDir, 'shared'), projectDir, { overwrite: true });
-  sharedSpinner.succeed(chalk.blue('🔨 Added shared components'));
-  
-  // Process template files like .env, package.json, and README.md
+  // Merge .env from all templates before processing template files
+  await mergeEnvFiles(projectDir, config);
+
+  // Merge and process config files (package.json, .env, etc.)
   await processTemplateFiles(projectDir, config);
   
   // Save configuration for future reference
@@ -88,9 +177,13 @@ export async function createProject(config: ProjectConfig): Promise<void> {
   await fs.writeJson(stackConfigPath, {
     createdAt: new Date().toISOString(),
     features: {
-      database: config.database,
+      databaseType: config.databaseType,
+      databaseProvider: config.databaseProvider,
+      orm: config.orm,
       auth: config.auth,
+      authProvider: config.authProvider || (config.auth ? 'nextauth' : undefined),
       mailing: config.mailing,
+      mailingProvider: config.mailingProvider || (config.mailing ? 'nodemailer' : undefined),
     }
   }, { spaces: 2 });
   
@@ -141,81 +234,82 @@ export async function createProject(config: ProjectConfig): Promise<void> {
 export async function addFeatureToProject(
   projectDir: string, 
   featureName: string,
-  databaseType: string
+  databaseType: string,
+  providerName?: string
 ): Promise<void> {
-  // Validate feature name
-  if (!['nextauth', 'mailing'].includes(featureName)) {
-    throw new Error(`Unsupported feature: ${featureName}`);
+  // Validate base feature name
+  const baseFeatures = ['auth', 'mailing'];
+  const authProviders = ['nextauth', 'lucia', 'clerk', 'supabase'];
+  const mailingProviders = ['nodemailer', 'resend', 'sendgrid', 'postmark'];
+  
+  // Determine the actual feature and provider
+  let actualFeature = featureName;
+  let actualProvider = providerName;
+  
+  // Handle case where featureName includes provider info
+  if (featureName === 'nextauth') {
+    actualFeature = 'auth';
+    actualProvider = 'nextauth';
+  } else if (featureName === 'mailing') {
+    actualFeature = 'mailing';
+    actualProvider = 'nodemailer';
   }
   
-  // Copy feature template
-  console.log(chalk.blue(`🔨 Adding ${featureName} to your project...`));
-  await fs.copy(path.join(templatesDir, featureName), projectDir, { overwrite: false });
+  // Validate feature
+  if (!baseFeatures.includes(actualFeature)) {
+    throw new Error(`Unsupported feature: ${actualFeature}`);
+  }
   
+  // Validate provider based on feature
+  if (actualFeature === 'auth' && actualProvider && !authProviders.includes(actualProvider)) {
+    throw new Error(`Unsupported auth provider: ${actualProvider}`);
+  }
+  
+  if (actualFeature === 'mailing' && actualProvider && !mailingProviders.includes(actualProvider)) {
+    throw new Error(`Unsupported mailing provider: ${actualProvider}`);
+  }
+  
+  // Default providers if not specified
+  if (!actualProvider) {
+    actualProvider = actualFeature === 'auth' ? 'nextauth' : 'nodemailer';
+  }
+  
+  console.log("FEATURE SELECTED", actualFeature, "PROVIDER:", actualProvider);
+  console.log(chalk.blue(`🔨 Adding ${actualProvider} ${actualFeature} to your project...`));
+   // Determine template directory
+  let templateDirName: string;
+  if (actualFeature === 'auth') {
+    templateDirName = actualProvider || 'nextauth';
+  } else {
+    templateDirName = actualProvider === 'nodemailer' ? 'mailing' : `mailing-${actualProvider}`;
+  }
+  
+  // Check if template exists
+  const templatePath = path.join(templatesDir, templateDirName);
+  if (!await fs.pathExists(templatePath)) {
+    if (actualFeature === 'auth') {
+      console.log(chalk.yellow(`Template for ${actualProvider} not found. Falling back to NextAuth...`));
+      templateDirName = 'nextauth';
+    } else {
+      console.log(chalk.yellow(`Template for ${actualProvider} not found. Falling back to standard mailing...`));
+      templateDirName = 'mailing';
+    }
+  }
+  
+  await fs.copy(path.join(templatesDir, templateDirName), projectDir, { overwrite: false });
+
   // Handle package.json merging
   const packageJsonPath = path.join(projectDir, 'package.json');
   let packageJson = await fs.readJson(packageJsonPath);
   
-  const featurePackagePath = path.join(templatesDir, featureName, 'package.json');
+  const featurePackagePath = path.join(templatesDir, templateDirName, 'package.json');
   if (await fs.pathExists(featurePackagePath)) {
     const featurePackage = await fs.readJson(featurePackagePath);
     packageJson = deepMerge(packageJson, featurePackage);
     
-    // Special handling for NextAuth with database adapters
-    if (featureName === 'nextauth' && ['prisma', 'drizzle'].includes(databaseType)) {
-      if (databaseType === 'prisma') {
-        packageJson.dependencies['@auth/prisma-adapter'] = '^5.0.0';
-      } else if (databaseType === 'drizzle') {
-        packageJson.dependencies['@auth/drizzle-adapter'] = '^0.3.5';
-      }
-      
-      // Update the auth route file with the correct adapter
-      const authRoutePath = path.join(projectDir, 'app/api/auth/[...nextauth]/route.ts');
-      if (await fs.pathExists(authRoutePath)) {
-        let content = await fs.readFile(authRoutePath, 'utf8');
-        
-        if (databaseType === 'prisma') {
-          content = content.replace(
-            '// DATABASE_ADAPTER_IMPORT',
-            'import { PrismaAdapter } from "@auth/prisma-adapter";'
-          ).replace(
-            '// DATABASE_ADAPTER_CONFIG',
-            'adapter: PrismaAdapter(prisma),'
-          );
-        } else if (databaseType === 'drizzle') {
-          content = content.replace(
-            '// DATABASE_ADAPTER_IMPORT',
-            'import { DrizzleAdapter } from "@auth/drizzle-adapter";'
-          ).replace(
-            '// DATABASE_ADAPTER_CONFIG',
-            'adapter: DrizzleAdapter(db),'
-          );
-        }
-        
-        await fs.writeFile(authRoutePath, content, 'utf8');
-      }
-    }
-    
-    // Write the updated package.json
     await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 });
   }
-  
-  // Update .env file if it exists
-  const envPath = path.join(projectDir, '.env');
-  if (await fs.pathExists(envPath)) {
-    let envContent = await fs.readFile(envPath, 'utf8');
-    
-    // Add appropriate environment variables based on the feature
-    if (featureName === 'nextauth' && !envContent.includes('NEXTAUTH_SECRET')) {
-      envContent += '\n\n# NextAuth\nNEXTAUTH_URL=http://localhost:3000\nNEXTAUTH_SECRET="your-nextauth-secret"\n';
-      envContent += '\n# Auth Providers (add as needed)\n# GITHUB_ID="your-github-id"\n# GITHUB_SECRET="your-github-secret"\n';
-    } else if (featureName === 'mailing' && !envContent.includes('SMTP_HOST')) {
-      envContent += '\n\n# Email settings\nSMTP_HOST="smtp.example.com"\nSMTP_PORT=587\nSMTP_USER="your-smtp-username"\n';
-      envContent += 'SMTP_PASSWORD="your-smtp-password"\nEMAIL_FROM="your-email@example.com"\n';
-    }
-    
-    await fs.writeFile(envPath, envContent, 'utf8');
-  }
+
   
   // Update .stackrc if it exists, or create it
   const stackConfigPath = path.join(projectDir, '.stackrc');
@@ -228,8 +322,7 @@ export async function addFeatureToProject(
       console.error('Error reading .stackrc file:', error);
     }
   }
-  
-  // Update the features
+
   if (!stackConfig.features) {
     stackConfig.features = {};
   }
@@ -246,14 +339,19 @@ export async function addFeatureToProject(
 async function processTemplateFiles(projectDir: string, config: ProjectConfig): Promise<void> {
   const templateData = {
     projectName: config.name,
-    database: config.database,
+    databaseType: config.databaseType,
+    databaseProvider: config.databaseProvider,
+    orm: config.orm,
     hasAuth: config.auth,
     hasMailing: config.mailing,
     currentYear: new Date().getFullYear(),
   };
   
   // Merge package.json files from different templates
-  await mergePackageJson(projectDir, config);
+  await mergeConfigFile(projectDir, config, 'package.json');
+  
+  // Merge tsconfig.json files from different templates
+  await mergeConfigFile(projectDir, config, 'tsconfig.json');
   
   // Files to process with handlebars
   const filesToProcess = [
@@ -270,7 +368,7 @@ async function processTemplateFiles(projectDir: string, config: ProjectConfig): 
       
       // Process with handlebars
       const template = Handlebars.compile(content);
-      const processed = template(templateData);
+      const processed = template({ ...templateData, projectName: config.name });
       
       // Write processed content back
       await fs.writeFile(filePath, processed, 'utf8');
@@ -279,96 +377,109 @@ async function processTemplateFiles(projectDir: string, config: ProjectConfig): 
 }
 
 /**
- * Merge package.json files from all selected templates
+ * Generic function for merging configuration files from all templates
+ * @param projectDir The project directory
+ * @param config The project configuration
+ * @param configFileName The name of the configuration file (e.g., "package.json", "tsconfig.json")
+ * @param additionalMergeActions Optional callback for additional processing after merge
  */
-async function mergePackageJson(projectDir: string, config: ProjectConfig): Promise<void> {
-  // Start with base package.json
-  const packageJsonPath = path.join(projectDir, 'package.json');
-  let packageJson = await fs.readJson(packageJsonPath);
-  
-  // Database-specific packages
-  const dbTemplatePath = path.join(templatesDir, config.database, 'package.json');
-  if (await fs.pathExists(dbTemplatePath)) {
-    const dbPackageJson = await fs.readJson(dbTemplatePath);
-    packageJson = deepMerge(packageJson, dbPackageJson);
-  }
-  
-  // Auth packages
-  if (config.auth) {
-    const authTemplatePath = path.join(templatesDir, 'nextauth', 'package.json');
-    if (await fs.pathExists(authTemplatePath)) {
-      const authPackageJson = await fs.readJson(authTemplatePath);
-      packageJson = deepMerge(packageJson, authPackageJson);
-      
-      // Add database adapter for auth based on database choice
-      if (config.database === 'prisma') {
-        packageJson.dependencies['@auth/prisma-adapter'] = '^5.0.0';
-      } else if (config.database === 'drizzle') {
-        packageJson.dependencies['@auth/drizzle-adapter'] = '^0.3.5';
+async function mergeConfigFile(
+  projectDir: string, 
+  config: ProjectConfig, 
+  configFileName: string,
+  additionalMergeActions?: (mergedConfig: Record<string, any>, config: ProjectConfig) => Record<string, any>
+): Promise<void> {
+  const configPath = path.join(projectDir, configFileName);
+  if (!await fs.pathExists(configPath)) return;
+  let mergedConfig = await fs.readJson(configPath);
+
+  const mergeDeps = (target: any, source: any, key: string) => {
+    if (target[key] && source[key]) {
+      target[key] = deepMerge(target[key], source[key]);
+    } else if (source[key]) {
+      target[key] = source[key];
+    }
+  };
+
+  const mergeFrom = async (templateDir: string) => {
+    const filePath = path.join(templateDir, configFileName);
+    if (await fs.pathExists(filePath)) {
+      const tpl = await fs.readJson(filePath);
+      mergeDeps(mergedConfig, tpl, 'dependencies');
+      mergeDeps(mergedConfig, tpl, 'devDependencies');
+      // Merge other top-level keys except name/version/scripts if not present
+      for (const key of Object.keys(tpl)) {
+        if (['dependencies', 'devDependencies', 'name', 'version', 'scripts'].includes(key)) continue;
+        if (!(key in mergedConfig)) mergedConfig[key] = tpl[key];
+      }
+      // Merge scripts
+      if (tpl.scripts) {
+        mergedConfig.scripts = { ...tpl.scripts, ...mergedConfig.scripts };
       }
     }
-  }
-  
-  // Mailing packages
+  };
+
+  // Merge in order: ORM, auth, mailing, UI
+  if (config.orm !== 'none') await mergeFrom(path.join(templatesDir, config.orm));
+  if (config.auth) await mergeFrom(path.join(templatesDir, 'nextauth'));
   if (config.mailing) {
-    const mailingTemplatePath = path.join(templatesDir, 'mailing', 'package.json');
-    if (await fs.pathExists(mailingTemplatePath)) {
-      const mailingPackageJson = await fs.readJson(mailingTemplatePath);
-      packageJson = deepMerge(packageJson, mailingPackageJson);
-    }
+    const provider = config.mailingProvider || 'nodemailer';
+    const mailingDir = provider === 'nodemailer' ? 'mailing' : `mailing-${provider}`;
+    await mergeFrom(path.join(templatesDir, mailingDir));
   }
-  
-  // UI library packages
+  if (config.ui !== 'none') await mergeFrom(path.join(templatesDir, config.ui));
+  // Merge from supabase BaaS template if selected
+  if (config.baas === 'supabase') await mergeFrom(path.join(templatesDir, 'supabase'));
+
+  if (additionalMergeActions) {
+    mergedConfig = additionalMergeActions(mergedConfig, config);
+  }
+  await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+}
+
+/**
+ * Merge .env files from all relevant templates (base, ORM, auth, mailing provider, UI, baas)
+ * Writes the merged .env to the project directory. First occurrence of a variable wins.
+ */
+async function mergeEnvFiles(projectDir: string, config: ProjectConfig) {
+  const envSources: string[] = [
+    path.join(templatesDir, 'base', '.env'),
+  ];
+  if (config.orm !== 'none') {
+    envSources.push(path.join(templatesDir, config.orm, '.env'));
+  }
+  if (config.auth) {
+    envSources.push(path.join(templatesDir, 'nextauth', '.env'));
+  }
+  if (config.mailing) {
+    const provider = config.mailingProvider || 'nodemailer';
+    const mailingDir = provider === 'nodemailer' ? 'mailing' : `mailing-${provider}`;
+    envSources.push(path.join(templatesDir, mailingDir, '.env'));
+  }
   if (config.ui !== 'none') {
-    const uiTemplatePath = path.join(templatesDir, config.ui, 'package.json');
-    if (await fs.pathExists(uiTemplatePath)) {
-      const uiPackageJson = await fs.readJson(uiTemplatePath);
-      packageJson = deepMerge(packageJson, uiPackageJson);
-      
-      // Add extra dependencies based on UI library choice
-      if (config.ui === 'nextui') {
-        // NextUI requires next-themes for dark mode
-        packageJson.dependencies['next-themes'] = '^0.2.1';
-      }
-      
-      // For shadcn/ui we need to add a post-install script to set it up
-      if (config.ui === 'shadcn') {
-        if (!packageJson.scripts.postinstall) {
-          packageJson.scripts.postinstall = "npx shadcn-ui init --yes";
+    envSources.push(path.join(templatesDir, config.ui, '.env'));
+  }
+
+  if (config.baas === 'supabase') {
+    envSources.push(path.join(templatesDir, 'supabase', '.env'));
+  }
+
+  const mergedVars: Record<string, string> = {};
+  for (const envPath of envSources) {
+    if (await fs.pathExists(envPath)) {
+      const content = await fs.readFile(envPath, 'utf8');
+      for (const line of content.split(/\r?\n/)) {
+        const match = line.match(/^([A-Z0-9_]+)=(.*)$/);
+        if (match) {
+          const [_, key, value] = match;
+          if (!(key in mergedVars)) {
+            mergedVars[key] = value;
+          }
         }
       }
     }
   }
-  
-  // Write the merged package.json
-  await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 });
-  
-  // Special handling for database adapter in NextAuth if both are selected
-  if (config.auth && (config.database === 'prisma' || config.database === 'drizzle')) {
-    const authConfigPath = path.join(projectDir, 'app/api/auth/[...nextauth]/route.ts');
-    if (await fs.pathExists(authConfigPath)) {
-      let content = await fs.readFile(authConfigPath, 'utf8');
-      
-      // Update adapter based on database choice
-      if (config.database === 'prisma') {
-        content = content.replace(
-          '// DATABASE_ADAPTER_IMPORT',
-          'import { PrismaAdapter } from "@auth/prisma-adapter";'
-        ).replace(
-          '// DATABASE_ADAPTER_CONFIG',
-          'adapter: PrismaAdapter(prisma),'
-        );
-      } else if (config.database === 'drizzle') {
-        content = content.replace(
-          '// DATABASE_ADAPTER_IMPORT',
-          'import { DrizzleAdapter } from "@auth/drizzle-adapter";'
-        ).replace(
-          '// DATABASE_ADAPTER_CONFIG',
-          'adapter: DrizzleAdapter(db),'
-        );
-      }
-      
-      await fs.writeFile(authConfigPath, content, 'utf8');
-    }
-  }
+  // Write merged .env
+  const mergedEnv = Object.entries(mergedVars).map(([k, v]) => `${k}=${v}`).join('\n');
+  await fs.writeFile(path.join(projectDir, '.env'), mergedEnv);
 }

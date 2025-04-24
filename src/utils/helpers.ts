@@ -38,7 +38,6 @@ export function deepMerge<T extends Record<string, any>>(target: T, source: Part
   return output;
 }
 
-// Type guard for objects
 function isObject(item: any): item is Record<string, any> {
   return item && typeof item === 'object' && !Array.isArray(item);
 }

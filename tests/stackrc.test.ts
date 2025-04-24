@@ -13,12 +13,16 @@ vi.mock('fs-extra', () => ({
       if (filePath.includes('.stackrc')) {
         return Promise.resolve({
           name: 'stackrc-test-project',
-          database: 'prisma',
+          databaseType: 'postgresql',
+          databaseProvider: 'supabase',
+          orm: 'prisma',
           auth: true,
+          authProvider: 'nextauth',
           mailing: true,
+          mailingProvider: 'nodemailer',
           ui: 'shadcn',
           packageManager: 'pnpm',
-          installDeps: true
+          installDeps: false
         });
       }
       return Promise.resolve({});
@@ -69,12 +73,16 @@ describe('stackrc configuration', () => {
     
     expect(config).toBeDefined();
     expect(config!.name).toBe('stackrc-test-project');
-    expect(config!.database).toBe('prisma');
+    expect(config!.orm).toBe('prisma');
+    expect(config!.databaseType).toBe('postgresql');
+    expect(config!.databaseProvider).toBe('supabase');
     expect(config!.auth).toBe(true);
+    expect(config!.authProvider).toBe('nextauth');
     expect(config!.mailing).toBe(true);
+    expect(config!.mailingProvider).toBe('nodemailer');
     expect(config!.ui).toBe('shadcn');
     expect(config!.packageManager).toBe('pnpm');
-    expect(config!.installDeps).toBe(true);
+    expect(config!.installDeps).toBe(false);
     
     expect(fs.readJson).toHaveBeenCalledWith(stackrcPath);
   });

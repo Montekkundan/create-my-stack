@@ -12,6 +12,7 @@ out/
 
 # Testing
 coverage/
+tests/test-output/
 
 # Environment variables
 .env

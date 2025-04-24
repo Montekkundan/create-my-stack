@@ -6,10 +6,14 @@ import { log } from '@clack/prompts';
 
 const stackConfigSchema = z.object({
   name: z.string().min(1, "Project name is required"),
-  ui: z.enum(["none", "shadcn", "chakra", "mantine", "nextui"]),
-  database: z.enum(["none", "prisma", "drizzle"]),
+  ui: z.enum(["none", "shadcn", "chakra"]),
+  databaseType: z.enum(["none", "postgresql", "mysql", "sqlite"]).default("none"),
+  databaseProvider: z.string().default("none"),
+  orm: z.enum(["none", "prisma", "drizzle"]).default("none"),
   auth: z.boolean(),
+  authProvider: z.enum(["nextauth", "lucia", "clerk", "supabase"]).optional(),
   mailing: z.boolean(),
+  mailingProvider: z.enum(["nodemailer", "resend", "sendgrid", "postmark"]).optional(),
   installDeps: z.boolean(),
   packageManager: z.enum(["npm", "pnpm", "yarn", "bun"]).optional(),
 });

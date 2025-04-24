@@ -1,8 +1,0 @@
-{
-  "dependencies": {
-    "@mantine/core": "^7.5.0",
-    "@mantine/hooks": "^7.5.0",
-    "@mantinex/mantine-logo": "^1.0.1",
-    "@mantine/next": "^7.5.0"
-  }
-}

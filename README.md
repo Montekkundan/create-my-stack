@@ -86,8 +86,6 @@ Your configuration is saved as a `.stackrc` file in the project directory. You c
 ### UI Libraries (Optional)
 - **shadcn/ui**: Beautifully designed components built with Radix UI and Tailwind CSS
 - **Chakra UI**: Simple, modular component library with great accessibility
-- **Mantine**: React components with native dark theme support
-- **NextUI**: Beautiful, modern React UI library with CSS-in-JS
 
 ## Available Templates
 
@@ -102,7 +100,6 @@ templates/
 ├── mailing/          # Email capabilities with React Email
 ├── shadcn/           # shadcn/ui components configuration
 ├── chakra/           # Chakra UI provider setup
-├── mantine/          # Mantine UI configuration
 ├── nextui/           # NextUI components and theme setup
 └── shared/           # Common files for all templates
 ```

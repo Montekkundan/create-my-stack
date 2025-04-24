@@ -1,0 +1,7 @@
+{
+  "name": "mailing-resend",
+  "version": "1.0.0",
+  "dependencies": {
+    "resend": "latest"
+  }
+}
