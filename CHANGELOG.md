@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1
+
+### Patch Changes
+
+- version and update moved to top
+
 ## 0.4.0
 
 ### Minor Changes
