@@ -1,16 +1,15 @@
 {
   "name": "create-my-stack",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "CLI-based meta-framework for scaffolding Next.js apps with custom stacks",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "create-my-stack": "./dist/index.js",
-    "create-my-stack-add": "./dist/add.js"
+    "create-my-stack": "./dist/index.js"
   },
   "scripts": {
     "dev": "tsc --watch",
-    "build": "tsc",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node16 --outfile=dist/index.js --banner:js='#!/usr/bin/env node'",
     "start": "node dist/index.js",
     "lint": "eslint src/**/*.ts",
     "prepublishOnly": "pnpm run build",
