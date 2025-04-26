@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0
+
+### Minor Changes
+
+- fix: ensure CLI uses CommonJS for compatibility with all runners
+
+  This reflects the changes made:
+
+  Set "type": "commonjs" in package.json
+  Updated build output to CommonJS (cjs)
+  Removed yarn test scripts and unsupported Yarn v1 create usage
+
 ## 0.1.2
 
 ### Patch Changes

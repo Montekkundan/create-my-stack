@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { intro, outro, text, select, confirm, spinner, log } from '@clack/prompts';
 import chalk from 'chalk';
 import { z } from 'zod';

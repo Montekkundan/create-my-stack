@@ -1,6 +1,5 @@
 import fs from 'fs-extra';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import ora from 'ora';
 import chalk from 'chalk';
 import Handlebars from 'handlebars';
@@ -10,9 +9,6 @@ import { execSync } from 'child_process';
 Handlebars.registerHelper('eq', function(arg1, arg2) {
   return arg1 === arg2;
 });
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const templatesDir = path.resolve(__dirname, '../../templates');
 
