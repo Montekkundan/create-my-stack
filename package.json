@@ -1,6 +1,6 @@
 {
   "name": "create-my-stack",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "CLI-based meta-framework for scaffolding Next.js apps with custom stacks",
   "type": "module",
   "main": "dist/index.js",
@@ -19,7 +19,7 @@
     "local-test": "pnpm run build && node dist/index.js",
     "link": "pnpm run build && pnpm link --global",
     "changeset": "changeset",
-    "version": "changeset version",
+    "ver": "changeset version",
     "release": "pnpm run build && changeset publish",
     "test:pnpm": "pnpm dlx create-my-stack@latest --help",
     "test:npx": "npx create-my-stack@latest --help",

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.3
+
+### Patch Changes
+
+- added npmignore to decrease package size
+
 ## 0.4.2
 
 ### Patch Changes

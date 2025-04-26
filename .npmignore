@@ -1,0 +1,40 @@
+# Tests and test output
+tests/
+test/
+__tests__/
+test-output/
+
+# Local config and meta
+.vscode/
+.idea/
+*.log
+*.tsbuildinfo
+*.swp
+*.swo
+*.DS_Store
+*.local
+*.cache
+*.tmp
+*.bak
+
+# Environment files
+.env
+.env.*
+
+# Docs and markdown
+CHANGELOG.md
+*.md
+!.npmignore
+!.gitignore
+
+# TypeScript source
+src/
+tsconfig.json
+
+# Changeset and release meta
+.changeset/
+
+# Lockfiles 
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
