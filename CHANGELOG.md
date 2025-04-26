@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+### Minor Changes
+
+- updated template fetch logic
+
 ## 0.2.0
 
 ### Minor Changes
