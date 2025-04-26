@@ -17,7 +17,6 @@
     "test:combos": "vitest run tests/combos",
     "test:watch": "vitest",
     "local-test": "pnpm run build && node dist/index.js",
-    "local-add-test": "pnpm run build && node dist/add.js add",
     "link": "pnpm run build && pnpm link --global",
     "changeset": "changeset",
     "version": "changeset version",

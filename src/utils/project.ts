@@ -10,7 +10,17 @@ Handlebars.registerHelper('eq', function(arg1, arg2) {
   return arg1 === arg2;
 });
 
-const templatesDir = path.resolve(__dirname, '../../templates');
+function getTemplatesDir() {
+  let candidate = path.resolve(__dirname, '../../templates');
+  if (fs.existsSync(candidate)) return candidate;
+  candidate = path.resolve(__dirname, '../templates');
+  if (fs.existsSync(candidate)) return candidate;
+  candidate = path.resolve(process.cwd(), 'templates');
+  if (fs.existsSync(candidate)) return candidate;
+  throw new Error('Could not find templates directory.');
+}
+
+const templatesDir = getTemplatesDir();
 
 interface ProjectConfig {
   name: string;

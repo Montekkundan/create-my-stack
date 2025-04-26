@@ -214,12 +214,17 @@ async function main() {
     // Now ask about ORM if a database is selected
     let orm: ProjectInput['orm'] = 'none';
     if (databaseType !== 'none') {
+      //  set ORM options and default based on BaaS
+      const ormOptions = [
+        { value: 'none', label: 'None - No ORM (recommended for BaaS)' },
+        { value: 'prisma', label: 'Prisma - Type-safe ORM with auto-generated migrations' },
+        { value: 'drizzle', label: 'Drizzle - Lightweight SQL ORM with type safety' },
+      ];
+      const ormDefault = baas === 'supabase' ? 'none' : 'prisma';
       orm = await select({
         message: 'Select your database ORM:',
-        options: [
-          { value: 'prisma', label: 'Prisma - Type-safe ORM with auto-generated migrations' },
-          { value: 'drizzle', label: 'Drizzle - Lightweight SQL ORM with type safety' },
-        ],
+        options: ormOptions,
+        initialValue: ormDefault,
       }) as ProjectInput['orm'];
     }
     
@@ -229,6 +234,7 @@ async function main() {
     if (databaseType !== 'none') {
       const authResponse = await confirm({
         message: 'Do you want to include authentication?',
+        initialValue: false,
       });
       auth = authResponse === true;
       
