@@ -31,7 +31,7 @@ const projectSchema = z.object({
   baas: z.enum(["none", "supabase"]).default("none"),
   orm: z.enum(["none", "prisma", "drizzle"]).default("none"),
   auth: z.boolean(),
-  authProvider: z.enum(["nextauth", "lucia", "clerk"]).optional(), // Remove 'supabase' from here
+  authProvider: z.enum(["nextauth", "lucia", "clerk"]).optional(), 
   mailing: z.boolean(),
   mailingProvider: z.enum(["nodemailer", "resend", "sendgrid", "postmark"]).optional(),
   installDeps: z.boolean(),

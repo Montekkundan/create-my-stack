@@ -1,11 +1,11 @@
 {
   "name": "create-my-stack",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "CLI-based meta-framework for scaffolding Next.js apps with custom stacks",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "create-my-stack": "./dist/index.js"
+    "create-my-stack": "./cli.mjs"
   },
   "scripts": {
     "dev": "tsc --watch",
