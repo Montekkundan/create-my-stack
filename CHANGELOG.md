@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+### Minor Changes
+
+- added update notifier and version
+
 ## 0.3.0
 
 ### Minor Changes

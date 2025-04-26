@@ -5,6 +5,10 @@ import chalk from 'chalk';
 import Handlebars from 'handlebars';
 import { deepMerge, commandExists } from './helpers.js';
 import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 Handlebars.registerHelper('eq', function(arg1, arg2) {
   return arg1 === arg2;

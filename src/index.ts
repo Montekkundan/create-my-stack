@@ -5,6 +5,24 @@ import path from 'path';
 import { createProject } from './utils/project.js';
 import { parseArgs } from './utils/args.js';
 import { saveStackConfig, loadStackConfig } from './utils/stackConfig.js';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import updateNotifier from 'update-notifier';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const pkgPath = path.join(__dirname, '../package.json');
+if (process.argv.includes('--version') || process.argv.includes('-v')) {
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+  console.log(pkg.version);
+  process.exit(0);
+}
+
+// --- Update notification ---
+const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+updateNotifier({ pkg }).notify();
 
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
