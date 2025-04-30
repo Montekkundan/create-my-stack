@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0
+
+### Minor Changes
+
+- updated stackconfig to take correct objects
+
 ## 0.4.5
 
 ### Patch Changes

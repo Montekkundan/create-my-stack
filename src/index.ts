@@ -56,17 +56,13 @@ async function main() {
     
     const loadedConfig = await loadStackConfig(stackFilePath);
     if (loadedConfig) {
-      // Remove 'supabase' from authProvider if present (backward compatibility)
-      let authProvider = loadedConfig.authProvider;
-      if (authProvider === 'supabase') authProvider = undefined;
-      // Ensure 'baas' is present in loaded config for backward compatibility
-      const baas = Object.prototype.hasOwnProperty.call(loadedConfig, 'baas') && (loadedConfig as any).baas
+      // Use baas from loadedConfig if present, otherwise default to 'none'
+      const baas = 'baas' in loadedConfig && typeof (loadedConfig as any).baas === 'string'
         ? (loadedConfig as any).baas
         : 'none';
       const configWithBaas = {
         ...loadedConfig,
         baas,
-        authProvider,
       };
       try {
         projectConfig = projectSchema.parse(configWithBaas);

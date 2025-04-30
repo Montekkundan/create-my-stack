@@ -15,13 +15,27 @@ Handlebars.registerHelper('eq', function(arg1, arg2) {
 });
 
 function getTemplatesDir() {
+  // Always resolve relative to the current file (works in both dev and prod)
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+
+  // Try ../../templates (prod, after build)
   let candidate = path.resolve(__dirname, '../../templates');
   if (fs.existsSync(candidate)) return candidate;
+
+  // Try ../templates (dev)
   candidate = path.resolve(__dirname, '../templates');
   if (fs.existsSync(candidate)) return candidate;
+
+  // Try CWD/templates (fallback)
   candidate = path.resolve(process.cwd(), 'templates');
   if (fs.existsSync(candidate)) return candidate;
-  throw new Error('Could not find templates directory.');
+
+  throw new Error('Could not find templates directory. Checked: ' + [
+    path.resolve(__dirname, '../../templates'),
+    path.resolve(__dirname, '../templates'),
+    path.resolve(process.cwd(), 'templates')
+  ].join(', '));
 }
 
 const templatesDir = getTemplatesDir();
@@ -46,6 +60,7 @@ interface ProjectConfig {
  */
 export async function createProject(config: ProjectConfig): Promise<void> {
   const projectDir = path.resolve(process.cwd(), config.name);
+  console.log('DEBUG: createProject will use projectDir:', projectDir);
   
   // Create the project directory
   await fs.ensureDir(projectDir);
@@ -125,7 +140,10 @@ export async function createProject(config: ProjectConfig): Promise<void> {
     const supabaseTemplatePath = path.join(templatesDir, 'supabase');
     if (await fs.pathExists(supabaseTemplatePath)) {
       const supabaseFiles = await fs.readdir(supabaseTemplatePath);
+      supabaseSpinner.info(`Supabase template path: ${supabaseTemplatePath}`);
+      supabaseSpinner.info(`Supabase files: ${JSON.stringify(supabaseFiles)}`);
       for (const file of supabaseFiles) {
+        supabaseSpinner.info(`Copying Supabase file: ${file}`);
         if (configFilesToMerge.includes(file)) continue;
         await fs.copy(path.join(supabaseTemplatePath, file), path.join(projectDir, file), { overwrite: true });
       }
@@ -189,7 +207,7 @@ export async function createProject(config: ProjectConfig): Promise<void> {
     ui: config.ui,
     databaseType: config.databaseType,
     databaseProvider: config.databaseProvider,
-    baas: config.baas, 
+    baas: config.baas,
     orm: config.orm,
     auth: config.auth,
     authProvider: config.authProvider,
