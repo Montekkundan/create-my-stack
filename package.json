@@ -1,6 +1,6 @@
 {
   "name": "create-my-stack",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "CLI-based meta-framework for scaffolding Next.js apps with custom stacks",
   "type": "module",
   "main": "dist/index.js",

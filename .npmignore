@@ -29,7 +29,7 @@ CHANGELOG.md
 
 # TypeScript source
 src/
-tsconfig.json
+/tsconfig.json
 
 # Changeset and release meta
 .changeset/

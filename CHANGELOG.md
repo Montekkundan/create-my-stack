@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.4
+
+### Patch Changes
+
+- tsconfig.json bug fix
+
 ## 0.4.3
 
 ### Patch Changes
