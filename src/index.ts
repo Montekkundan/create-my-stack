@@ -68,7 +68,19 @@ async function main() {
         baas,
         authProvider,
       };
-      projectConfig = configWithBaas;
+      try {
+        projectConfig = projectSchema.parse(configWithBaas);
+      } catch (error) {
+        log.error('Invalid .stackrc file format');
+        if (error instanceof z.ZodError) {
+          error.errors.forEach(err => {
+            log.error(`${err.path.join('.')}: ${err.message}`);
+          });
+        } else {
+          log.error(String(error));
+        }
+        process.exit(1);
+      }
       log.info(chalk.green('Successfully loaded stack configuration!'));
     } else {
       log.error(`Couldn't load configuration from ${stackFilePath}`);

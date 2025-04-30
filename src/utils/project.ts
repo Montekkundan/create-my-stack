@@ -185,16 +185,18 @@ export async function createProject(config: ProjectConfig): Promise<void> {
   // Save configuration for future reference
   const stackConfigPath = path.join(projectDir, '.stackrc');
   await fs.writeJson(stackConfigPath, {
-    createdAt: new Date().toISOString(),
-    features: {
-      databaseType: config.databaseType,
-      databaseProvider: config.databaseProvider,
-      orm: config.orm,
-      auth: config.auth,
-      authProvider: config.authProvider || (config.auth ? 'nextauth' : undefined),
-      mailing: config.mailing,
-      mailingProvider: config.mailingProvider || (config.mailing ? 'nodemailer' : undefined),
-    }
+    name: config.name,
+    ui: config.ui,
+    databaseType: config.databaseType,
+    databaseProvider: config.databaseProvider,
+    baas: config.baas, 
+    orm: config.orm,
+    auth: config.auth,
+    authProvider: config.authProvider,
+    mailing: config.mailing,
+    mailingProvider: config.mailingProvider,
+    installDeps: config.installDeps,
+    packageManager: config.packageManager
   }, { spaces: 2 });
   
   const projectSpinner = ora('Project structure creation').succeed(chalk.green('✅ Project structure created successfully!'));

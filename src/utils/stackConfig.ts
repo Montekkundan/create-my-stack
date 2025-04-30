@@ -41,11 +41,10 @@ export async function loadStackConfig(stackFilePath: string): Promise<StackConfi
     if (await fs.pathExists(stackFilePath)) {
       const rawConfig = await fs.readJson(stackFilePath);
       const parsedConfig = stackConfigSchema.safeParse(rawConfig);
-      
       if (parsedConfig.success) {
         return parsedConfig.data;
       } else {
-        log.error('Invalid .stack file format');
+        log.error('Invalid .stackrc file format');
         parsedConfig.error.errors.forEach(err => {
           log.error(`${err.path.join('.')}: ${err.message}`);
         });
@@ -55,6 +54,5 @@ export async function loadStackConfig(stackFilePath: string): Promise<StackConfi
   } catch (error) {
     log.error(`Failed to load stack configuration: ${error instanceof Error ? error.message : String(error)}`);
   }
-  
   return null;
 }

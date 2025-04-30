@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.5
+
+### Patch Changes
+
+- stackrc fix
+
 ## 0.4.4
 
 ### Patch Changes
